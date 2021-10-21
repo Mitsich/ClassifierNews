@@ -7,13 +7,13 @@ from nltk.stem.snowball import SnowballStemmer
 from pymystem3 import Mystem
 from tqdm.auto import tqdm
 #Для нейросетки
-#from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import classification_report, accuracy_score
 from sklearn.model_selection import train_test_split
+import pickle
 
 
 # Предобработка Текста#
@@ -98,6 +98,7 @@ if __name__ == '__main__':
     ###Классы нашего классификатора###
     category = ['Спорт', 'Культура', 'Интернет и СМИ', 'Наука и техника', 'Экономика']
 
+
     # preparing_text(mystem,stemmer,category,russian_stopwords)
 
     #Подргружаем файл датасета
@@ -109,11 +110,6 @@ if __name__ == '__main__':
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
     #Запускаем конвеер
-    #nb = Pipeline([('vect', CountVectorizer()),
-     #              ('tfidf', TfidfTransformer()),
-      #             ('clf', MultinomialNB()),
-       #            ])
-
     sgd = Pipeline([('vect', CountVectorizer()),
                     ('tfidf', TfidfTransformer()),
                     ('clf',
@@ -123,8 +119,16 @@ if __name__ == '__main__':
     #Запускаем обучение
     #nb.fit(X_train, y_train)
     sgd.fit(X_train,y_train)
+
+    #Сохраняем модель
+    with open('model/model.pkl', 'wb') as f:
+        pickle.dump(sgd, f)
+
+    #Подгружаем модель
+    with open('model/model.pkl', 'rb') as f:
+        sgd_load = pickle.load(f)
     #Запускаем предсказание на тестовой выборке
-    y_pred = sgd.predict(X_test)
+    y_pred = sgd_load.predict(X_test)
 
     ##############Классификация текста
     #Ввод данных
@@ -142,13 +146,13 @@ if __name__ == '__main__':
     #Стемминг текста
             ex_text = stemming_text(ex_text)
     #Предсказываем категорию обработанного текста
-            text_pred = sgd.predict([ex_text])
+            text_pred = sgd_load.predict([ex_text])
     #Выводим текст
-            print("\nКатегория текста:" + text_pred[0])
+            print("\nКатегория текста: " + text_pred[0])
     except Exception as e:
         print(e)
     ###############Точность
-    print("___Точность работы классификатора___")
+    print("Точность работы классификатора загружена в файл: classification_report.txt")
     accuracy = accuracy_score(y_pred, y_test)
     report = classification_report(y_test, y_pred, target_names=category)
     f1 = open("classificationReport/classification_report.txt", 'w',encoding='utf-8')
